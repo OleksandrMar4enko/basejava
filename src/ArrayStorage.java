@@ -13,8 +13,12 @@ public class ArrayStorage {
     }
 
     void save(Resume r) {
-        storage[size] = r;
-        size++;
+        if (get(r.uuid) == null) {
+            storage[size] = r;
+            size++;
+        } else {
+            System.out.println("Resume " + r + " is already exist");
+        }
     }
 
     Resume get(String uuid) {
