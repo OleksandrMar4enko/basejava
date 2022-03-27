@@ -2,8 +2,7 @@
  * Array based storage for Resumes
  */
 public class ArrayStorage {
-    private int capacity = 3;
-    Resume[] storage = new Resume[capacity];
+    Resume[] storage = new Resume[1000];
     private int size = 0;
 
     void clear() {
@@ -44,7 +43,9 @@ public class ArrayStorage {
      * @return array, contains only Resumes in storage (without null)
      */
     Resume[] getAll() {
-        return storage;
+        Resume[] resumes = new Resume[size];
+        System.arraycopy(storage, 0, resumes, 0, size);
+        return resumes;
     }
 
     int size() {
