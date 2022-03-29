@@ -21,15 +21,23 @@ public class ArrayStorage {
         }
     }
 
+    void update(Resume resume) {
+        int index = getIndex(resume.uuid);
+        if (get(resume.uuid) == null) {
+            System.out.println("Resume " + resume.uuid + " is not exist");
+        } else {
+            storage[index] = resume;
+        }
+    }
+
     Resume get(String uuid) {
-        Resume resume = null;
         int index = getIndex(uuid);
         if (index == -1) {
             System.out.println("Resume " + uuid + " is not exist");
-        } else {
-            resume = storage[index];
+            return null;
         }
-        return resume;
+        return storage[index];
+
     }
 
     void delete(String uuid) {
