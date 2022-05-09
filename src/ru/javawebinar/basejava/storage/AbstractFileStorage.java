@@ -5,11 +5,17 @@ import ru.javawebinar.basejava.model.Resume;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
 public abstract class AbstractFileStorage extends AbstractStorage<File> {
 	private File directory;
+
+	protected abstract void doWrite(Resume r, File file) throws IOException;
+
+	protected abstract Resume doRead(File file);
 
 	protected AbstractFileStorage(File directory) {
 		Objects.requireNonNull(directory, "directory must not be null");
@@ -24,12 +30,12 @@ public abstract class AbstractFileStorage extends AbstractStorage<File> {
 
 	@Override
 	public void clear() {
-
+		Arrays.stream(directory.listFiles()).iterator().next().delete();
 	}
 
 	@Override
 	public int size() {
-		return 0;
+		return (int) directory.length();
 	}
 
 	@Override
@@ -39,7 +45,11 @@ public abstract class AbstractFileStorage extends AbstractStorage<File> {
 
 	@Override
 	protected void doUpdate(Resume r, File file) {
-
+		try {
+			doWrite(r, file);
+		} catch (IOException e) {
+			throw new StorageException("IO error", file.getName(), e);
+		}
 	}
 
 	@Override
@@ -57,20 +67,23 @@ public abstract class AbstractFileStorage extends AbstractStorage<File> {
 		}
 	}
 
-	protected abstract void doWrite(Resume r, File file) throws IOException;
-
 	@Override
 	protected Resume doGet(File file) {
-		return null;
+		return doRead(file);
 	}
 
 	@Override
 	protected void doDelete(File file) {
-
+		file.delete();
 	}
 
 	@Override
 	protected List<Resume> doCopyAll() {
-		return null;
+		List<Resume> resumes = new ArrayList<>();
+		File[] files = directory.listFiles();
+		for (File file : files) {
+			resumes.add(doRead(file));
+		}
+		return resumes;
 	}
 }
