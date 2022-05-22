@@ -50,14 +50,26 @@ public class SqlStorage implements Storage {
 
 	@Override
 	public void update(Resume r) {
-		sqlHelper.execute("UPDATE resume SET full_name = ? WHERE uuid = ?", ps -> {
-			ps.setString(1, r.getFullName());
-			ps.setString(2, r.getUuid());
-			if (ps.executeUpdate() == 0) {
-				throw new NotExistStorageException(r.getUuid());
-			}
-			return null;
-		});
+		sqlHelper.transactionalExecute(conn -> {
+					try (PreparedStatement ps = conn.prepareStatement("UPDATE resume SET full_name = ? WHERE uuid = ?")) {
+						ps.setString(1, r.getFullName());
+						ps.setString(2, r.getUuid());
+						if (ps.executeUpdate() == 0) {
+							throw new NotExistStorageException(r.getUuid());
+						}
+					}
+					try (PreparedStatement ps = conn.prepareStatement("UPDATE contact SET type = ?, value = ? WHERE resume_uuid = ?")) {
+						for (Map.Entry<ContactType, String> e : r.getContacts().entrySet()) {
+							ps.setString(1, e.getKey().name());
+							ps.setString(2, e.getValue());
+							ps.setString(3, r.getUuid());
+							ps.addBatch();
+						}
+						ps.executeBatch();
+					}
+					return null;
+				}
+		);
 	}
 
 	@Override
@@ -95,11 +107,19 @@ public class SqlStorage implements Storage {
 
 	@Override
 	public List<Resume> getAllSorted() {
-		return sqlHelper.execute("SELECT * FROM resume r ORDER BY full_name,uuid", ps -> {
+		return sqlHelper.execute("" +
+						"    SELECT * FROM resume r\n" +
+						" LEFT JOIN contact c " +
+						"        ON r.uuid = c.resume_uuid\n" +
+						"  ORDER BY full_name,uuid ", ps -> {
 			ResultSet rs = ps.executeQuery();
 			List<Resume> resumes = new ArrayList<>();
 			while (rs.next()) {
-				resumes.add(new Resume(rs.getString("uuid"), rs.getString("full_name")));
+				Resume resume = new Resume(rs.getString("uuid"), rs.getString("full_name"));
+				String value = rs.getString("value");
+				ContactType type = ContactType.valueOf(rs.getString("type"));
+				resume.addContact(type, value);
+				resumes.add(resume);
 			}
 			return resumes;
 		});
